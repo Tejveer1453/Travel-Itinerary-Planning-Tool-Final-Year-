@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TravelGenie - Itinerary Planner</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/itinerary.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <!-- Leaflet Geocoder CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Leaflet Geocoder JS -->
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <!-- Sortable.js for drag and drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="../images/Logo.jpg" class="logo-img">
+            <span>TravelGenie</span>
+        </div>
+        <div class="nav-links">
+            <a href="../index.html"><i class="fas fa-home"></i> Home</a>
+            <a href="itinerary.html" class="active"><i class="fas fa-map-marked-alt"></i> Itinerary</a>
+            <a href="budget.html"><i class="fas fa-wallet"></i> Budget</a>
+            <a href="profile.html"><i class="fas fa-user"></i> Profile</a>
+        </div>
+    </nav>
+
+    <div class="itinerary-container">
+        <div class="sidebar">
+            <div class="trip-header">
+                <h2>My Trips</h2>
+                <button class="btn-primary" id="newTripBtn">
+                    <i class="fas fa-plus"></i> New Trip
+                </button>
+            </div>
+            <div class="trip-list" id="tripList">
+                <!-- Trips will be added here dynamically -->
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="trip-details hidden" id="tripDetails">
+                <div class="trip-info">
+                    <input type="text" id="tripName" class="trip-name" placeholder="Trip Name">
+                    <div class="date-range">
+                        <input type="date" id="tripStartDate">
+                        <span>to</span>
+                        <input type="date" id="tripEndDate">
+                    </div>
+                </div>
+
+                <div class="itinerary-builder">
+                    <div class="map-container">
+                        <div id="map"></div>
+                    </div>
+
+                    <div class="schedule-container">
+                        <div class="schedule-header">
+                            <h3>Daily Schedule</h3>
+                            <button class="btn-primary" id="addActivityBtn">
+                                <i class="fas fa-plus"></i> Add Activity
+                            </button>
+                        </div>
+                        <div class="days-navigation">
+                            <button id="prevDay"><i class="fas fa-chevron-left"></i></button>
+                            <span id="currentDay">Day 1</span>
+                            <button id="nextDay"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        <div class="activities-list" id="activitiesList">
+                            <!-- Activities will be added here dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary" id="saveTrip">
+                        <i class="fas fa-save"></i> Save Trip
+                    </button>
+                    <button class="btn-secondary" id="shareTrip">
+                        <i class="fas fa-share"></i> Share
+                    </button>
+                </div>
+            </div>
+
+            <div class="empty-state" id="emptyState">
+                <i class="fas fa-map-marked-alt"></i>
+                <h2>Create Your First Trip</h2>
+                <p>Start planning your next adventure by clicking the "New Trip" button</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Trip Modal -->
+    <div class="modal" id="newTripModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Trip</h2>
+                <button type="button" class="close-btn" onclick="document.getElementById('newTripModal').classList.remove('active')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="newTripForm">
+                <div class="form-group">
+                    <label for="newTripName">
+                        <i class="fas fa-suitcase"></i> Trip Name
+                    </label>
+                    <input type="text" id="newTripName" placeholder="Enter trip name" required>
+                </div>
+                <div class="form-group">
+                    <label for="newTripStart">
+                        <i class="fas fa-calendar"></i> Start Date
+                    </label>
+                    <input type="date" id="newTripStart" required>
+                </div>
+                <div class="form-group">
+                    <label for="newTripEnd">
+                        <i class="fas fa-calendar-check"></i> End Date
+                    </label>
+                    <input type="date" id="newTripEnd" required>
+                </div>
+                <div class="form-group">
+                    <label for="newTripBudget">
+                        <i class="fas fa-wallet"></i> Total Budget
+                    </label>
+                    <input type="number" id="newTripBudget" placeholder="Enter total budget" min="0" step="1" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('newTripModal').classList.remove('active')">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-plus"></i> Create Trip
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Activity Modal -->
+    <div class="modal" id="activityModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add New Activity</h2>
+                <button type="button" class="close-btn" onclick="document.getElementById('activityModal').classList.remove('active')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="newActivityForm">
+                <div class="form-group">
+                    <label for="activityName">
+                        <i class="fas fa-map-pin"></i> Activity Name
+                    </label>
+                    <input type="text" id="activityName" placeholder="Enter activity name" required>
+                </div>
+                <div class="form-group">
+                    <label for="activityDay">
+                        <i class="fas fa-calendar-day"></i> Day
+                    </label>
+                    <select id="activityDay" required>
+                        <!-- Days will be populated dynamically based on trip duration -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="activityLocation">
+                        <i class="fas fa-location-dot"></i> Location
+                    </label>
+                    <input type="text" id="activityLocation" placeholder="Search for a location" required>
+                </div>
+                <div class="form-group">
+                    <label for="activityTime">
+                        <i class="fas fa-clock"></i> Time
+                    </label>
+                    <input type="time" id="activityTime" required>
+                </div>
+                <div class="form-group">
+                    <label for="activityNotes">
+                        <i class="fas fa-note-sticky"></i> Notes
+                    </label>
+                    <textarea id="activityNotes" rows="3" placeholder="Add any additional notes"></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-secondary" onclick="document.getElementById('activityModal').classList.remove('active')">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-plus"></i> Add Activity
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/config.js"></script>
+    <script src="../js/itinerary.js"></script>
+</body>
+</html>
